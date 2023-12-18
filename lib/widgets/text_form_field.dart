@@ -39,6 +39,15 @@ class MyTextFormField extends StatelessWidget {
               return 'Please enter a valid email address';
             }
             return null;
+          } else if (labelText == "Name") {
+            if (value == null || value.isEmpty) {
+              return 'Please enter the name field';
+            }
+            // Use a regular expression to check if the value contains only letters
+            if (!RegExp(r'^[a-zA-Z]+$').hasMatch(value)) {
+              return 'Name should contain only letters';
+            }
+            return null;
           } else {
             if (value == null || value.isEmpty) {
               return 'Please enter the ${labelText.toLowerCase()} field';

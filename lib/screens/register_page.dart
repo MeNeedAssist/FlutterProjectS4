@@ -1,6 +1,7 @@
 // ignore_for_file: use_build_context_synchronously, unused_local_variable
 
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:project_s4/api/api_service.dart';
@@ -16,6 +17,7 @@ class RegisterPage extends StatefulWidget {
 }
 
 class _RegisterPageState extends State<RegisterPage> {
+  bool isRegister = false;
   final _formKey = GlobalKey<FormState>();
 
   final ApiService apiService = ApiService();
@@ -24,7 +26,8 @@ class _RegisterPageState extends State<RegisterPage> {
   TextEditingController emailController = TextEditingController();
   TextEditingController nameController = TextEditingController();
   TextEditingController passwordController = TextEditingController();
-  DateTime selectedDate = DateTime.now(); // Initial date
+  DateTime selectedDate =
+      DateTime.now().subtract(Duration(days: 18 * 365)); // Initial date
 
   String getFormattedDate() {
     return DateFormat('d-MM-y').format(selectedDate.toLocal());
@@ -32,6 +35,9 @@ class _RegisterPageState extends State<RegisterPage> {
 
   Future<void> registerUser() async {
     try {
+      setState(() {
+        isRegister = true;
+      });
       // print(emailController.text.trim());
       var response = await apiService.registerUser(
         email: emailController.text.trim(),
@@ -64,6 +70,8 @@ class _RegisterPageState extends State<RegisterPage> {
         toEmail: emailController.text.trim(),
         subject: 'Ultimate Learning Activation',
         content: 'Your verify code is: ',
+        deevLink: 'http://localhost3000/login',
+        action: 'Confirm Account',
       );
       if (response) {
         print('Send Code');
@@ -112,15 +120,26 @@ class _RegisterPageState extends State<RegisterPage> {
                           TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
                     ),
                     SizedBox(
-                      height: 10,
+                      height: 15,
                     ),
                     Text(
                       "Register",
                       style:
                           TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
                     ),
+                    SizedBox(
+                      height: 15,
+                    ),
+                    SvgPicture.asset(
+                      'images/assets/logo.svg',
+                      width: 100,
+                      height: 100,
+                    ),
+                    SizedBox(
+                      height: 15,
+                    ),
                     Padding(
-                      padding: const EdgeInsets.only(top: 150),
+                      padding: const EdgeInsets.only(top: 50),
                       child: Column(
                         children: [
                           MyTextFormField(
@@ -156,16 +175,32 @@ class _RegisterPageState extends State<RegisterPage> {
                           ),
                           ElevatedButton(
                             onPressed: () async {
+                              final DateTime currentDate = DateTime.now();
+                              final DateTime eighteenYearsAgo = currentDate
+                                  .subtract(Duration(days: 18 * 365));
                               final DateTime? picked = await showDatePicker(
                                 context: context,
                                 initialDate: selectedDate,
-                                firstDate: DateTime(2000),
-                                lastDate: DateTime(2101),
+                                firstDate: DateTime(1950),
+                                lastDate: currentDate,
                               );
                               if (picked != null && picked != selectedDate) {
-                                setState(() {
-                                  selectedDate = picked;
-                                });
+                                if (picked.isAfter(eighteenYearsAgo)) {
+                                  // Show an error message if the selected date is not at least 18 years ago
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                          'Selected date must be at least 18 years ago.'),
+                                    ),
+                                  );
+                                } else {
+                                  // Set the selected date if it's valid
+                                  setState(
+                                    () {
+                                      selectedDate = picked;
+                                    },
+                                  );
+                                }
                               }
                             },
                             child: Text('Select Date'),
@@ -175,23 +210,25 @@ class _RegisterPageState extends State<RegisterPage> {
                     ),
                     Padding(
                       padding: const EdgeInsets.only(top: 25),
-                      child: MyButton(
-                        onTap: () async {
-                          if (_formKey.currentState!.validate()) {
-                            try {
-                              await registerUser();
-                              // print('Registration successful');
-                              await sendVerifyCode();
-                              // print('Verification code sent successfully');
-                            } catch (error) {
-                              print(
-                                  'Error during registration or verification: $error');
-                              // Handle errors as needed
-                            }
-                          }
-                        },
-                        text: "Register",
-                      ),
+                      child: !isRegister
+                          ? MyButton(
+                              onTap: () async {
+                                if (_formKey.currentState!.validate()) {
+                                  try {
+                                    await registerUser();
+                                    // print('Registration successful');
+                                    await sendVerifyCode();
+                                    // print('Verification code sent successfully');
+                                  } catch (error) {
+                                    // Handle errors as needed
+                                  }
+                                }
+                              },
+                              text: "Register",
+                            )
+                          : Center(
+                              child: CircularProgressIndicator(),
+                            ),
                     ),
                   ],
                 ),

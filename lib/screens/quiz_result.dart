@@ -29,6 +29,9 @@ class _QuizResultState extends State<QuizResult> {
           userId: userId,
           lessonId: widget.testResult.id,
           questions: widget.testResult.questions!);
+      // for (var answer in testResult.questions) {
+      //   print(answer.rightAnswer);
+      // }
       setState(() {
         isTestResult = true;
       });
@@ -85,6 +88,87 @@ class _QuizResultState extends State<QuizResult> {
     }
 
     return icons;
+  }
+
+  void _showReviewDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Review Questions'),
+          content: SingleChildScrollView(
+            child: Column(
+              children: [
+                for (var answer in testResult.questions)
+                  Column(
+                    children: [
+                      Container(
+                        padding: EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            color: Colors.black, // Border color
+                            width: 2.0, // Border thickness
+                          ),
+                          borderRadius:
+                              BorderRadius.circular(8.0), // Rounded corners
+                        ),
+                        child: ListTile(
+                          title: Text('Question: ${answer.content}'),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Divider(),
+                              Row(
+                                children: [
+                                  Text('Your Answer: ${answer.answer}'),
+                                  answer.answer == answer.rightAnswer
+                                      ? Icon(
+                                          Icons.check,
+                                          color: Colors.green,
+                                        )
+                                      : Icon(
+                                          Icons.close,
+                                          color: Colors.red,
+                                        ),
+                                ],
+                              ),
+                              Text('Correct Answer: ${answer.rightAnswer}'),
+                            ],
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 10), // Add a SizedBox between Containers
+                    ],
+                  ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Container(
+                padding: EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: Colors.black, // Border color
+                    width: 2.0, // Border thickness
+                  ),
+                  borderRadius: BorderRadius.circular(25.0), // Rounded corners
+                ),
+                child: Text(
+                  'Close',
+                  style: TextStyle(
+                      // You can customize the text style here
+                      ),
+                ),
+              ),
+            )
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -205,24 +289,49 @@ class _QuizResultState extends State<QuizResult> {
                                       fontSize: 25,
                                       fontWeight: FontWeight.bold),
                                 ),
-                                const SizedBox(
-                                  height: 30,
-                                ),
-                                Text(
-                                  testResult.resultMessage,
-                                  textAlign: TextAlign.center,
-                                  maxLines: 100,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.bold),
-                                ),
                               ],
                             ),
                           ],
-                        )
+                        ),
+                        const SizedBox(
+                          height: 30,
+                        ),
+                        Text(
+                          testResult.resultMessage,
+                          textAlign: TextAlign.center,
+                          maxLines: 100,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold),
+                        ),
                       ],
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: ElevatedButton(
+                    onPressed: () {
+                      _showReviewDialog(context);
+                    },
+                    style: ButtonStyle(
+                      backgroundColor: MaterialStateProperty.all(
+                          Colors.white), // Change to red
+                      shape: MaterialStateProperty.all(
+                        RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(25),
+                        ),
+                      ),
+                    ),
+                    child: const Text(
+                      "Review",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 20,
+                        color: Colors.black,
+                      ),
                     ),
                   ),
                 ),
@@ -286,10 +395,6 @@ class _QuizResultState extends State<QuizResult> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: iconList,
                         ),
-                        // Image.asset(
-                        //   'assets/gameOver.png',
-                        //   width: 200,
-                        // ),
                         const SizedBox(
                           height: 40,
                         ),
@@ -391,6 +496,31 @@ class _QuizResultState extends State<QuizResult> {
                               fontWeight: FontWeight.bold),
                         ),
                       ],
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: ElevatedButton(
+                    onPressed: () {
+                      _showReviewDialog(context);
+                    },
+                    style: ButtonStyle(
+                      backgroundColor: MaterialStateProperty.all(
+                          Colors.white), // Change to red
+                      shape: MaterialStateProperty.all(
+                        RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(25),
+                        ),
+                      ),
+                    ),
+                    child: const Text(
+                      "Review",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 20,
+                        color: Colors.black,
+                      ),
                     ),
                   ),
                 ),

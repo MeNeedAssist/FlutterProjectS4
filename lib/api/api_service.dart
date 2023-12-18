@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:project_s4/model/author.dart';
 import 'package:project_s4/model/category.dart';
 import 'package:project_s4/model/lesson.dart';
 import 'package:project_s4/model/question.dart';
@@ -207,6 +209,8 @@ class ApiService {
     required String toEmail,
     required String subject,
     required String content,
+    required String deevLink,
+    required String action,
   }) async {
     try {
       var url = Uri.parse(
@@ -217,6 +221,8 @@ class ApiService {
         'toEmail': toEmail,
         'subject': subject,
         'content': content,
+        'deevLink': deevLink,
+        'action': action,
       };
 
       // Convert the request body to a JSON string
@@ -233,9 +239,6 @@ class ApiService {
         // print('Verification code Service');
         return true;
       } else {
-        print(
-            'Failed to send verification code. Status Code: ${response.statusCode}');
-        print('Response Body: ${response.body}');
         return false;
       }
     } catch (error) {
@@ -271,9 +274,6 @@ class ApiService {
         print('Active successfully');
         return true;
       } else {
-        print(
-            'Failed to send verification code. Status Code: ${response.statusCode}');
-        print('Response Body: ${response.body}');
         return false;
       }
     } catch (error) {
@@ -316,11 +316,11 @@ class ApiService {
       };
       final http.Response response = await http.put(url, headers: headers);
       if (response.statusCode == 200) {
-        return response;
+        return response.body;
       } else {
-        final dynamic errorResponse = jsonDecode(response.body);
+        final dynamic errorResponse = response.body;
         // Use the null-aware operator to check for a Message property
-        throw errorResponse?['Error Message'] ?? 'Unknown Error Occurred';
+        throw errorResponse;
       }
     } catch (error) {
       throw error.toString(); // Convert the error to a string
@@ -383,6 +383,220 @@ class ApiService {
       }
     } catch (e) {
       throw e.toString();
+    }
+  }
+
+  Future<dynamic> addComment({
+    required int userId,
+    required int lessonId,
+    required String content,
+  }) async {
+    try {
+      var url = Uri.parse(
+          '${ApiEndPoints.baseUrl}${ApiEndPoints.lessonEndpoints.addComment}/$userId/$lessonId');
+      // Construct the request body as a Map
+      final Map<String, dynamic> requestBody = {
+        'content': content, // Convert DateTime to ISO 8601 format
+      };
+      // Convert the request body to a JSON string
+      final String requestBodyJson = jsonEncode(requestBody);
+      // Send the POST request with the JSON body
+      final http.Response response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: requestBodyJson,
+      );
+      if (response.statusCode == 200) {
+        return true;
+      } else {
+        final dynamic errorResponse = jsonDecode(response.body);
+        throw errorResponse?['Error Message'] ?? 'Unknown Error Occurred';
+      }
+    } catch (error) {
+      throw error.toString();
+    }
+  }
+
+  Future<dynamic> updateProfile({
+    required int userId,
+    required String email,
+    required String name,
+    required DateTime dateOfBirth,
+    required String avatar,
+    required String token,
+  }) async {
+    try {
+      var url = Uri.parse(
+          '${ApiEndPoints.baseUrl}${ApiEndPoints.authEndpoints.updateProfile}');
+      // Construct the request body as a Map
+      final Map<String, dynamic> requestBody = {
+        'userId': userId,
+        'email': email,
+        'name': name,
+        'dateOfBirth': dateOfBirth
+            .toIso8601String(), // Convert DateTime to ISO 8601 format
+        'avatar': avatar,
+      };
+
+      // Convert the request body to a JSON string
+      final String requestBodyJson = jsonEncode(requestBody);
+      var headers = {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      };
+      // Send the POST request with the JSON body
+      final http.Response response = await http.put(
+        url,
+        headers: headers,
+        body: requestBodyJson,
+      );
+      print(response.body);
+      if (response.statusCode == 200) {
+        // print('Register successfully');
+        // final json = jsonDecode(response.body);
+        return true;
+      } else {
+        final dynamic errorResponse = jsonDecode(response.body);
+        throw errorResponse?['Error Message'] ?? 'Unknown Error Occurred';
+      }
+    } catch (error) {
+      throw error.toString();
+    }
+  }
+
+  Future<List<Lesson>> getFavLesson(String token) async {
+    try {
+      var url = Uri.parse(
+          ApiEndPoints.baseUrl + ApiEndPoints.lessonEndpoints.getFavListLesson);
+      var headers = {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      };
+      final http.Response response = await http.get(url, headers: headers);
+
+      if (response.statusCode == 200) {
+        final dynamic jsonResponse = jsonDecode(response.body);
+        // print(jsonResponse);
+        final List<dynamic> lessonDataList = jsonResponse;
+
+        final List<Lesson> lesson = lessonDataList
+            .map((lessonData) =>
+                Lesson.fromJson(lessonData as Map<String, dynamic>))
+            .toList();
+
+        return lesson;
+      } else {
+        final dynamic errorResponse = jsonDecode(response.body);
+        // Use the null-aware operator to check for a Message property
+        throw errorResponse?['Error Message'] ?? 'Unknown Error Occurred';
+      }
+    } catch (error) {
+      throw error.toString(); // Convert the error to a string
+    }
+  }
+
+  Future<dynamic> refundLesson(
+      {required String token, required int lessonId}) async {
+    try {
+      var url = Uri.parse(
+          '${ApiEndPoints.baseUrl}${ApiEndPoints.lessonEndpoints.refundLesson}/$lessonId');
+      var headers = {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      };
+      final http.Response response = await http.put(url, headers: headers);
+      if (response.statusCode == 200) {
+        return response;
+      } else {
+        final dynamic errorResponse = response.body;
+        // Use the null-aware operator to check for a Message property
+        throw errorResponse;
+
+        // throw jsonDecode(response.body)["Error Message"] ??
+        //     "Unknown Error Occurred";
+      }
+    } catch (error) {
+      throw error.toString(); // Convert the error to a string
+    }
+  }
+
+  Future<List<Author>> getListAuthor() async {
+    try {
+      var url = Uri.parse(
+          ApiEndPoints.baseUrl + ApiEndPoints.lessonEndpoints.authorList);
+      final http.Response response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        final dynamic jsonResponse = jsonDecode(response.body);
+        // print(jsonResponse);
+        final List<dynamic> authorDataList = jsonResponse;
+
+        final List<Author> authorList = authorDataList
+            .map((authorData) =>
+                Author.fromJson(authorData as Map<String, dynamic>))
+            .toList();
+
+        return authorList;
+      } else {
+        final dynamic errorResponse = jsonDecode(response.body);
+        // Use the null-aware operator to check for a Message property
+        throw errorResponse?['Error Message'] ?? 'Unknown Error Occurred';
+      }
+    } catch (error) {
+      throw error.toString(); // Convert the error to a string
+    }
+  }
+
+  Future<String> uploadFile(
+      {required File? file,
+      required String folderName,
+      required String folderPath}) async {
+    try {
+      var stringPath = '';
+      if (file != null) {
+        stringPath = file.path;
+      }
+      var url = Uri.parse(
+          ApiEndPoints.baseUrl + ApiEndPoints.authEndpoints.uploadFile);
+      var request = http.MultipartRequest('POST', url);
+      request.fields['folderName'] = folderName;
+      request.fields['folderPath'] = folderPath;
+      request.files.add(await http.MultipartFile.fromPath('file', stringPath));
+      http.StreamedResponse response = await request.send();
+      if (response.statusCode == 200) {
+        return response.stream.bytesToString();
+      } else {
+        return stringPath;
+      }
+    } catch (error) {
+      throw error.toString(); // Convert the error to a string
+    }
+  }
+
+  Future<List<Lesson>> getListLessonByAuthorId({required int authorId}) async {
+    try {
+      var url = Uri.parse(
+          '${ApiEndPoints.baseUrl}${ApiEndPoints.lessonEndpoints.authorProfile}/$authorId');
+      final http.Response response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        final dynamic jsonResponse = jsonDecode(response.body);
+        // print(jsonResponse);
+        final List<dynamic> lessonDataList = jsonResponse;
+
+        final List<Lesson> lessonList = lessonDataList
+            .map((authorData) =>
+                Lesson.fromJson(authorData as Map<String, dynamic>))
+            .toList();
+
+        return lessonList;
+      } else {
+        final dynamic errorResponse = jsonDecode(response.body);
+        // Use the null-aware operator to check for a Message property
+        throw errorResponse?['Error Message'] ?? 'Unknown Error Occurred';
+      }
+    } catch (error) {
+      throw error.toString(); // Convert the error to a string
     }
   }
 }

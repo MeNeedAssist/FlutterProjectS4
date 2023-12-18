@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:project_s4/api/api_service.dart';
 import 'package:project_s4/widgets/button.dart';
@@ -83,8 +84,19 @@ class _LoginPageState extends State<LoginPage> {
                       style:
                           TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
                     ),
+                    SizedBox(
+                      height: 15,
+                    ),
+                    SvgPicture.asset(
+                      'images/assets/logo.svg',
+                      width: 100,
+                      height: 100,
+                    ),
+                    SizedBox(
+                      height: 15,
+                    ),
                     Padding(
-                      padding: const EdgeInsets.only(top: 150),
+                      padding: const EdgeInsets.only(top: 50),
                       child: Column(
                         children: [
                           MyTextFormField(

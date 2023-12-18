@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:project_s4/api/api_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -13,6 +14,8 @@ class VerifyPage extends StatefulWidget {
 class _VerifyPageState extends State<VerifyPage> {
   final ApiService apiService = ApiService();
   final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
+
+  bool showErrorSnackbar = true;
 
   List<TextEditingController> controllers =
       List.generate(5, (_) => TextEditingController());
@@ -37,13 +40,8 @@ class _VerifyPageState extends State<VerifyPage> {
         await prefs?.setString('token', responseLogin['token']);
         await prefs?.setInt('userId', responseLogin['user']['userId']);
         context.go('/homepage');
-        print(email);
-        print(password);
-        print(responseLogin['token']);
-        print(responseLogin['user']['userId']);
-        print('active success');
       } else {
-        controllers.clear;
+        controllers.clear();
         throw Exception('Active fail');
       }
     } catch (error) {
@@ -55,7 +53,14 @@ class _VerifyPageState extends State<VerifyPage> {
       } else {
         errorMessage = 'Unknown Error Occurred';
       }
-      print(errorMessage);
+      if (showErrorSnackbar) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage),
+          ),
+        );
+        showErrorSnackbar = false;
+      }
     }
   }
 
@@ -80,31 +85,51 @@ class _VerifyPageState extends State<VerifyPage> {
                     "Enter Verify Code",
                     style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
                   ),
+                  SizedBox(
+                    height: 15,
+                  ),
+                  SvgPicture.asset(
+                    'images/assets/logo.svg',
+                    width: 100,
+                    height: 100,
+                  ),
+                  SizedBox(
+                    height: 15,
+                  ),
                   Padding(
-                    padding: const EdgeInsets.only(top: 150),
+                    padding: const EdgeInsets.only(top: 50),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: List.generate(
                         controllers.length,
                         (index) => SizedBox(
-                          height: 64,
-                          width: 68,
+                          height: 50,
+                          width: 50,
                           child: TextFormField(
                             controller: controllers[index],
                             autofocus: index == 0,
                             onChanged: (value) {
-                              if (value.length == 1) {
-                                FocusScope.of(context).nextFocus();
+                              if (value.isEmpty) {
+                                // Check for backspace (delete key) and move to the previous field
+                                if (index > 0) {
+                                  FocusScope.of(context).previousFocus();
+                                }
+                              } else {
+                                // Move to the next field when a digit is entered
+                                if (value.length == 1 &&
+                                    index < controllers.length - 1) {
+                                  FocusScope.of(context).nextFocus();
+                                }
                               }
-                              if (index == controllers.length - 1 &&
-                                  value.length == 1) {
-                                // The last box is filled, trigger your function
-                                pinCode = controllers
-                                    .map((controller) => controller.text)
-                                    .join();
-                                print(pinCode);
-                                enterVerifyCode();
-                                // Call your function here with the concatenated pin code
+
+                              // Concatenate the pin code
+                              pinCode = controllers
+                                  .map((controller) => controller.text)
+                                  .join();
+                              enterVerifyCode();
+                              // If the first field is empty, clear the pinCode
+                              if (controllers[0].text.isEmpty) {
+                                pinCode = '';
                               }
                             },
                             maxLength: 1,

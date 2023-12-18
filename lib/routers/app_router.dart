@@ -1,9 +1,11 @@
 import 'package:go_router/go_router.dart';
 import 'package:project_s4/api/jwt_service.dart';
+import 'package:project_s4/model/author.dart';
 import 'package:project_s4/model/lesson.dart';
 import 'package:project_s4/screens/detail_lesson.dart';
 import 'package:project_s4/screens/homepage.dart';
 import 'package:project_s4/screens/login_page.dart';
+import 'package:project_s4/screens/profile_author.dart';
 import 'package:project_s4/screens/quiz_page.dart';
 import 'package:project_s4/screens/quiz_result.dart';
 import 'package:project_s4/screens/register_page.dart';
@@ -45,6 +47,16 @@ GoRouter router() {
         name: 'homepage',
         builder: (context, state) => HomePage(),
         routes: [
+          GoRoute(
+            path: 'profile_author',
+            name: 'profile_author',
+            builder: (context, state) {
+              Author author = state.extra as Author;
+              return ProfileAuthor(
+                author: author,
+              );
+            },
+          ),
           GoRoute(
             path: 'detail_lesson',
             name: 'detail_lesson',

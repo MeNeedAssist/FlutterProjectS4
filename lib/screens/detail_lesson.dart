@@ -8,6 +8,8 @@ import 'package:project_s4/theme/fonts.dart';
 import 'package:project_s4/utils/api_endpoint.dart';
 import 'package:project_s4/widgets/app_bar.dart';
 import 'package:project_s4/widgets/comments_tile.dart';
+import 'package:project_s4/widgets/my_text_box.dart';
+import 'package:project_s4/widgets/text_field.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:video_player/video_player.dart';
 
@@ -22,6 +24,8 @@ class LessonDetail extends StatefulWidget {
 class _LessonDetailState extends State<LessonDetail> {
   bool isLoading = true;
   bool isBuying = false;
+  final textController = TextEditingController();
+  final FocusNode textFocusNode = FocusNode();
 
   VideoPlayerController? _videoController;
   ChewieController? _chewieController;
@@ -38,13 +42,13 @@ class _LessonDetailState extends State<LessonDetail> {
       final SharedPreferences? prefs = await _prefs;
       final userId = prefs?.get('userId') as int;
       final token = prefs?.get('token') as String;
-      await _apiSer.buyLesson(token: token, lessonId: widget.lesson.id);
+      final String message =
+          await _apiSer.buyLesson(token: token, lessonId: widget.lesson.id);
 
       //lay lai data
       final Lesson lessonAPI =
           await _apiSer.getDetailLessonByUserId(userId, widget.lesson.id);
       lessonTrong = lessonAPI;
-      print(lessonTrong.comments);
       if (mounted) {
         if (lessonTrong.video != null) {
           _videoController = VideoPlayerController.networkUrl(
@@ -68,8 +72,67 @@ class _LessonDetailState extends State<LessonDetail> {
           );
         }
       }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message.toString()),
+        ),
+      );
     } catch (e) {
-      print(e);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString()),
+        ),
+      );
+    } finally {
+      setState(() {
+        isBuying = false;
+      });
+    }
+  }
+
+  Future<void> refundLesson() async {
+    try {
+      setState(() {
+        isBuying = true;
+      });
+      final SharedPreferences? prefs = await _prefs;
+      final userId = prefs?.get('userId') as int;
+      final token = prefs?.get('token') as String;
+      await _apiSer.refundLesson(token: token, lessonId: widget.lesson.id);
+
+      //lay lai data
+      final Lesson lessonAPI =
+          await _apiSer.getDetailLessonByUserId(userId, widget.lesson.id);
+      lessonTrong = lessonAPI;
+      if (mounted) {
+        if (lessonTrong.video != null) {
+          _videoController = VideoPlayerController.networkUrl(
+              Uri.parse('${ApiEndPoints.backendUrl}${lessonTrong.video}'))
+            ..initialize().then((_) {
+              setState(() {
+                isLoading = false;
+              });
+            });
+
+          _chewieController = ChewieController(
+            videoPlayerController: _videoController!,
+            autoInitialize: true,
+            looping: false,
+            allowFullScreen: true,
+            allowMuting: true,
+            allowPlaybackSpeedChanging: true,
+            aspectRatio: 16 / 9,
+            // You can customize more options here
+            // ...
+          );
+        }
+      }
+    } catch (error) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error.toString()),
+        ),
+      );
     } finally {
       setState(() {
         isBuying = false;
@@ -115,6 +178,36 @@ class _LessonDetailState extends State<LessonDetail> {
       setState(() {
         isLoading = false;
       });
+    }
+  }
+
+  Future<void> addComment() async {
+    try {
+      final SharedPreferences? prefs = await _prefs;
+      final userId = prefs?.get('userId') as int;
+      // print(emailController.text.trim());
+      await _apiSer.addComment(
+        content: textController.text,
+        lessonId: widget.lesson.id,
+        userId: userId,
+      );
+
+      final Lesson lessonAPI =
+          await _apiSer.getDetailLessonByUserId(userId, widget.lesson.id);
+      lessonTrong = lessonAPI;
+      setState(() {
+        textController.clear();
+        isLoading = false;
+      });
+    } catch (error) {
+      String errorMessage;
+      if (error is Map && error.containsKey('Error Message')) {
+        errorMessage = error['Error Message'];
+      } else if (error is String) {
+        errorMessage = error;
+      } else {
+        errorMessage = 'Unknown Error Occurred';
+      }
     }
   }
 
@@ -204,12 +297,47 @@ class _LessonDetailState extends State<LessonDetail> {
                           height: 20,
                         ),
                         lessonTrong.video != null
-                            ? TextButton(
-                                onPressed: () {
-                                  context.goNamed('quiz_page',
-                                      extra: lessonTrong);
-                                },
-                                child: Text('Take a Test'),
+                            ? Container(
+                                decoration: BoxDecoration(
+                                  border: Border.all(
+                                    color: Colors
+                                        .black, // You can set the color of the border
+                                    width:
+                                        1.0, // You can set the thickness of the border
+                                  ),
+                                  borderRadius: BorderRadius.circular(
+                                      8.0), // You can set the border radius
+                                ),
+                                child: TextButton(
+                                  onPressed: () {
+                                    context.goNamed('quiz_page',
+                                        extra: lessonTrong);
+                                  },
+                                  child: Text('Take a Test'),
+                                ),
+                              )
+                            : Container(),
+                        SizedBox(
+                          height: 10,
+                        ),
+                        lessonTrong.video != null
+                            ? Container(
+                                decoration: BoxDecoration(
+                                  border: Border.all(
+                                    color: Colors
+                                        .black, // You can set the color of the border
+                                    width:
+                                        1.0, // You can set the thickness of the border
+                                  ),
+                                  borderRadius: BorderRadius.circular(
+                                      8.0), // You can set the border radius
+                                ),
+                                child: TextButton(
+                                  onPressed: () {
+                                    _showRefundDialog(context);
+                                  },
+                                  child: Text('Refund'),
+                                ),
                               )
                             : Container(),
                         Divider(),
@@ -218,6 +346,26 @@ class _LessonDetailState extends State<LessonDetail> {
                           style: customGoogleFont(
                               fontSize: 22, color: primaryColor),
                         ),
+                        lessonTrong.video != null
+                            ? Row(
+                                children: [
+                                  Expanded(
+                                    child: MyTextField(
+                                      controller: textController,
+                                      hintText: 'Write something...',
+                                      obscureText: false,
+                                    ),
+                                  ),
+                                  IconButton(
+                                    onPressed: () {
+                                      addComment();
+                                      textFocusNode.unfocus();
+                                    },
+                                    icon: Icon(Icons.arrow_circle_up),
+                                  ),
+                                ],
+                              )
+                            : Container(),
                         SizedBox(
                           height: 10,
                         ),
@@ -281,7 +429,37 @@ class _LessonDetailState extends State<LessonDetail> {
     if (_videoController != null && _chewieController != null) {
       _videoController?.dispose();
       _chewieController?.dispose();
+      textFocusNode.dispose();
+      textController.dispose();
     }
     super.dispose();
+  }
+
+  void _showRefundDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Refund Confirmation'),
+          content: Text('Are you sure you want to request a refund?'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                refundLesson();
+                // Perform refund logic here
+                Navigator.of(context).pop(); // Close the dialog
+              },
+              child: Text('Yes'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
+              },
+              child: Text('No'),
+            ),
+          ],
+        );
+      },
+    );
   }
 }

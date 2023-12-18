@@ -7,23 +7,23 @@ import 'package:project_s4/api/api_service.dart';
 import 'package:project_s4/model/purchaseBundle.dart';
 import 'package:project_s4/widgets/app_bar.dart';
 import 'package:flutter_paypal/flutter_paypal.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-class QRScanner extends StatefulWidget {
-  const QRScanner({super.key});
+class Testing2 extends StatefulWidget {
+  const Testing2({super.key});
 
   @override
-  State<QRScanner> createState() => _QRScannerState();
+  State<Testing2> createState() => _Testing2State();
 }
 
-class _QRScannerState extends State<QRScanner> with ChangeNotifier {
+class _Testing2State extends State<Testing2> with ChangeNotifier {
+  final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
   final ApiService _apiSer = ApiService();
 
   String qrResult = 'Scanned Data will appear here';
   late PurchaseBundle bundle;
-  bool scanned = false;
-
+  bool scaned = false;
   Future<void> scanQR() async {
     try {
       final qrCode = await FlutterBarcodeScanner.scanBarcode(
@@ -37,17 +37,32 @@ class _QRScannerState extends State<QRScanner> with ChangeNotifier {
       }
       final Map<String, dynamic> jsonResponse = jsonDecode(qrCode);
       bundle = PurchaseBundle.fromJson(jsonResponse);
-      scanned = true;
+      // print(bundle.description);
+      scaned = true;
       notifyListeners();
     } on PlatformException {
-      qrResult = 'Fail to read QR code';
+      if (mounted) {
+        setState(() {
+          qrResult = 'Fail to read QR code';
+        });
+      }
     }
+  }
+
+  void printSth() {
+    print('Purchase Success');
+  }
+
+  @override
+  void dispose() {
+    // Perform any cleanup operations here
+    super.dispose(); // Make sure to call super.dispose()
   }
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider<_QRScannerState>(
-      create: (_) => this,
+    return ChangeNotifierProvider.value(
+      value: this,
       child: SafeArea(
         child: Scaffold(
           appBar: MyAppBar(text: 'Ultimate Learning'),
@@ -58,9 +73,9 @@ class _QRScannerState extends State<QRScanner> with ChangeNotifier {
                 SizedBox(
                   height: 30,
                 ),
-                Consumer<_QRScannerState>(
+                Consumer<_Testing2State>(
                   builder: (context, model, _) {
-                    return model.scanned
+                    return model.scaned
                         ? Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
@@ -80,9 +95,9 @@ class _QRScannerState extends State<QRScanner> with ChangeNotifier {
                 SizedBox(
                   height: 20,
                 ),
-                Consumer<_QRScannerState>(
+                Consumer<_Testing2State>(
                   builder: (context, model, _) {
-                    return model.scanned
+                    return model.scaned
                         ? Text(
                             '\$${model.bundle.price}',
                             style: TextStyle(
@@ -96,9 +111,9 @@ class _QRScannerState extends State<QRScanner> with ChangeNotifier {
                 SizedBox(
                   height: 30,
                 ),
-                Consumer<_QRScannerState>(
+                Consumer<_Testing2State>(
                   builder: (context, model, _) {
-                    return !model.scanned
+                    return !model.scaned
                         ? ElevatedButton(
                             onPressed: model.scanQR,
                             child: Text('Scan Code'),
@@ -106,9 +121,9 @@ class _QRScannerState extends State<QRScanner> with ChangeNotifier {
                         : Container();
                   },
                 ),
-                Consumer<_QRScannerState>(
+                Consumer<_Testing2State>(
                   builder: (context, model, _) {
-                    return model.scanned
+                    return model.scaned
                         ? TextButton(
                             onPressed: () => {
                               Navigator.of(context).push(
@@ -133,20 +148,16 @@ class _QRScannerState extends State<QRScanner> with ChangeNotifier {
                                     note:
                                         "Contact us for any questions on your order.",
                                     onSuccess: (Map params) async {
-                                      if (!mounted) {
-                                        return;
-                                      }
                                       final SharedPreferences? prefs =
-                                          await SharedPreferences.getInstance();
+                                          await _prefs;
                                       final token =
                                           prefs?.get('token') as String;
                                       await model._apiSer.purchaseGem(
                                         gem: model.bundle.gem,
                                         token: token,
                                       );
-                                      if (mounted) {
-                                        model.setState(() {});
-                                      }
+                                      printSth();
+                                      model.notifyListeners();
                                     },
                                     onError: (error) {
                                       print("onError: $error");
@@ -157,6 +168,12 @@ class _QRScannerState extends State<QRScanner> with ChangeNotifier {
                                   ),
                                 ),
                               )
+                              // .then((value) => {
+                              //       Navigator.of(context).push(
+                              //           MaterialPageRoute(
+                              //               builder: (context) =>
+                              //                   HomePage()))
+                              //     }),
                             },
                             child: const Text("Confirm Payment"),
                           )

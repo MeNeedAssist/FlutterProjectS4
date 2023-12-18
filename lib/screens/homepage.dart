@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:project_s4/api/api_service.dart';
 import 'package:project_s4/model/category.dart';
 import 'package:project_s4/model/lesson.dart';
+import 'package:project_s4/screens/author_page.dart';
 import 'package:project_s4/screens/my_lesson.dart';
 import 'package:project_s4/screens/profile.dart';
 import 'package:project_s4/theme/colors.dart';
 import 'package:project_s4/theme/fonts.dart';
 import 'package:project_s4/widgets/app_bar.dart';
 import 'package:project_s4/widgets/category_tile.dart';
+import 'package:project_s4/widgets/fav_lesson_list.dart';
 import 'package:project_s4/widgets/lessons_tile.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 // import 'package:shared_preferences/shared_preferences.dart';
@@ -28,9 +30,24 @@ class _HomePageState extends State<HomePage> {
 
   List<Category> categoriesList = [];
   List<Lesson> lessonsList = [];
+  List<Lesson> favLessonList = [];
 
   final ScrollController _scrollController = ScrollController();
   bool _showScrollToTopButton = false;
+
+  Future<void> getFavListLesson() async {
+    try {
+      final SharedPreferences? prefs = await _prefs;
+      final token = prefs?.get('token') as String;
+      final List<Lesson> favLesson = await _apiSer.getFavLesson(token);
+      setState(() {
+        favLessonList = favLesson;
+      });
+    } catch (error) {
+      // Xử lý lỗi ở đây
+      print(error);
+    }
+  }
 
   // Assume this is inside an async function
   Future<void> getListCategories() async {
@@ -59,11 +76,24 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  Future<void> toggleLikeRemove(Category category) async {
+    final SharedPreferences? prefs = await _prefs;
+    final token = prefs?.get('token') as String;
+
+    // Call the asynchronous method and get the result
+    await _apiSer.addOrRemoveFavorite(token, category.categoryId);
+    getFavListLesson();
+    setState(() {
+      category.favorite = !category.favorite;
+    });
+  }
+
   @override
   void initState() {
     super.initState();
     getListCategories();
     getListLessons();
+    getFavListLesson();
     _scrollController.addListener(() {
       setState(() {
         _showScrollToTopButton = _scrollController.offset >= 200;
@@ -114,10 +144,43 @@ class _HomePageState extends State<HomePage> {
                       child: ListView.builder(
                         scrollDirection: Axis.horizontal,
                         itemCount: categoriesList.length,
-                        itemBuilder: (context, index) =>
-                            CategoryTile(category: categoriesList[index]),
+                        itemBuilder: (context, index) => CategoryTile(
+                            category: categoriesList[index],
+                            onToggleLike: () {
+                              toggleLikeRemove(categoriesList[index]);
+                            }),
                       ),
                     ),
+                    SizedBox(
+                      height: 25,
+                    ),
+                    favLessonList.isNotEmpty
+                        ? Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 25),
+                            child: Text(
+                              'Lessons You May Interested',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey[800],
+                                fontSize: 18,
+                              ),
+                            ),
+                          )
+                        : Container(),
+                    SizedBox(
+                      height: 10,
+                    ),
+                    favLessonList.isNotEmpty
+                        ? SizedBox(
+                            height: 200,
+                            child: ListView.builder(
+                              scrollDirection: Axis.horizontal,
+                              itemCount: favLessonList.length,
+                              itemBuilder: (context, index) =>
+                                  FavLessonList(lessons: favLessonList[index]),
+                            ),
+                          )
+                        : Container(),
                     SizedBox(
                       height: 25,
                     ),
@@ -144,6 +207,7 @@ class _HomePageState extends State<HomePage> {
               ],
             ),
             MyLessonPage(),
+            AuthorPage(),
             MyProfilePage(),
           ][currentPageIndex],
         ),
@@ -215,6 +279,10 @@ class _HomePageState extends State<HomePage> {
         NavigationDestination(
           icon: Icon(Icons.library_books_rounded),
           label: 'MyLesson',
+        ),
+        NavigationDestination(
+          icon: Icon(Icons.group),
+          label: 'Author',
         ),
         NavigationDestination(
           icon: Icon(Icons.person),

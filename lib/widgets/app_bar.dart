@@ -1,6 +1,7 @@
 // ignore_for_file: file_names
 
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:project_s4/screens/qr_scanner.dart';
 
 class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
@@ -12,12 +13,25 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return AppBar(
-      title: Text(
-        text,
-        style: const TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
-        ),
+      title: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          SvgPicture.asset(
+            'images/assets/logo.svg',
+            width: 30,
+            height: 30,
+          ),
+          SizedBox(
+            width: 10,
+          ),
+          Text(
+            text,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
       ),
       actions: [
         IconButton(
@@ -29,7 +43,7 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
         ),
       ],
       elevation: 0.0,
-      backgroundColor: Colors.transparent,
+      backgroundColor: Colors.white,
       centerTitle: true,
     );
   }

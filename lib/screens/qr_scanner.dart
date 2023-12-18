@@ -3,11 +3,12 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_barcode_scanner/flutter_barcode_scanner.dart';
+import 'package:go_router/go_router.dart';
 import 'package:project_s4/api/api_service.dart';
 import 'package:project_s4/model/purchaseBundle.dart';
+import 'package:project_s4/screens/homepage.dart';
 import 'package:project_s4/widgets/app_bar.dart';
-import 'package:flutter_paypal/flutter_paypal.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_paypal_payment/flutter_paypal_payment.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class QRScanner extends StatefulWidget {
@@ -17,7 +18,7 @@ class QRScanner extends StatefulWidget {
   State<QRScanner> createState() => _QRScannerState();
 }
 
-class _QRScannerState extends State<QRScanner> with ChangeNotifier {
+class _QRScannerState extends State<QRScanner> {
   final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
   final ApiService _apiSer = ApiService();
 
@@ -39,7 +40,7 @@ class _QRScannerState extends State<QRScanner> with ChangeNotifier {
       bundle = PurchaseBundle.fromJson(jsonResponse);
       // print(bundle.description);
       scaned = true;
-      notifyListeners();
+      setState(() {});
     } on PlatformException {
       if (mounted) {
         setState(() {
@@ -47,10 +48,6 @@ class _QRScannerState extends State<QRScanner> with ChangeNotifier {
         });
       }
     }
-  }
-
-  void printSth() {
-    print('Purchase Success');
   }
 
   @override
@@ -61,121 +58,105 @@ class _QRScannerState extends State<QRScanner> with ChangeNotifier {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider.value(
-      value: this,
-      child: SafeArea(
-        child: Scaffold(
-          appBar: MyAppBar(text: 'Ultimate Learning'),
-          body: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                SizedBox(
-                  height: 30,
-                ),
-                Consumer<_QRScannerState>(
-                  builder: (context, model, _) {
-                    return model.scaned
-                        ? Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.diamond),
-                              Text(
-                                '${model.bundle.gem}',
-                                style: TextStyle(
-                                  color: Colors.black,
-                                  fontSize: 22,
-                                ),
-                              ),
+    return SafeArea(
+      child: Scaffold(
+        appBar: MyAppBar(text: 'Ultimate Learning'),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SizedBox(
+                height: 30,
+              ),
+              scaned
+                  ? Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.diamond),
+                        Text(
+                          '${bundle.gem}',
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontSize: 22,
+                          ),
+                        ),
+                      ],
+                    )
+                  : Container(),
+              SizedBox(
+                height: 20,
+              ),
+              scaned
+                  ? Text(
+                      '\$${bundle.price}',
+                      style: TextStyle(
+                        color: Colors.black,
+                        fontSize: 22,
+                      ),
+                    )
+                  : Container(),
+              SizedBox(
+                height: 30,
+              ),
+              scaned
+                  ? TextButton(
+                      onPressed: () {
+                        Navigator.of(context).push(MaterialPageRoute(
+                          builder: (BuildContext context) => PaypalCheckoutView(
+                            sandboxMode: true,
+                            clientId:
+                                "AcNyCFolvTV9M5vlw974qLJNkK972ybFYzZyMDqTqtecjGqeSDDGQQfbgZyA0GG0Phg0NDwmTcZXwI38",
+                            secretKey:
+                                "EH4lyMoVM5BLHDl8iPkrH1eBai2ZiU4nGwEWBm_IEx2rp1BeE0vREKmAcbjbyPeEPx6Knwh-Iso2vpYO",
+                            transactions: [
+                              {
+                                "amount": {
+                                  "total": '${bundle.price}',
+                                  "currency": "USD",
+                                },
+                                "description": bundle.description,
+                              }
                             ],
-                          )
-                        : Container();
-                  },
-                ),
-                SizedBox(
-                  height: 20,
-                ),
-                Consumer<_QRScannerState>(
-                  builder: (context, model, _) {
-                    return model.scaned
-                        ? Text(
-                            '\$${model.bundle.price}',
-                            style: TextStyle(
-                              color: Colors.black,
-                              fontSize: 22,
-                            ),
-                          )
-                        : Container();
-                  },
-                ),
-                SizedBox(
-                  height: 30,
-                ),
-                Consumer<_QRScannerState>(
-                  builder: (context, model, _) {
-                    return !model.scaned
-                        ? ElevatedButton(
-                            onPressed: model.scanQR,
-                            child: Text('Scan Code'),
-                          )
-                        : Container();
-                  },
-                ),
-                Consumer<_QRScannerState>(
-                  builder: (context, model, _) {
-                    return model.scaned
-                        ? TextButton(
-                            onPressed: () => {
+                            note: "Contact us for any questions on your order.",
+                            onSuccess: (Map params) async {
+                              final SharedPreferences? prefs = await _prefs;
+                              final token = prefs?.get('token') as String;
+                              var buyGem = await _apiSer.purchaseGem(
+                                gem: bundle.gem,
+                                token: token,
+                              );
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(buyGem),
+                                ),
+                              );
                               Navigator.of(context).push(
                                 MaterialPageRoute(
-                                  builder: (BuildContext context) => UsePaypal(
-                                    sandboxMode: true,
-                                    clientId:
-                                        "AcNyCFolvTV9M5vlw974qLJNkK972ybFYzZyMDqTqtecjGqeSDDGQQfbgZyA0GG0Phg0NDwmTcZXwI38",
-                                    secretKey:
-                                        "EH4lyMoVM5BLHDl8iPkrH1eBai2ZiU4nGwEWBm_IEx2rp1BeE0vREKmAcbjbyPeEPx6Knwh-Iso2vpYO",
-                                    returnURL: "https://samplesite.com/return",
-                                    cancelURL: "https://samplesite.com/cancel",
-                                    transactions: [
-                                      {
-                                        "amount": {
-                                          "total": '${bundle.price}',
-                                          "currency": "USD",
-                                        },
-                                        "description": bundle.description,
-                                      }
-                                    ],
-                                    note:
-                                        "Contact us for any questions on your order.",
-                                    onSuccess: (Map params) async {
-                                      final SharedPreferences? prefs =
-                                          await _prefs;
-                                      final token =
-                                          prefs?.get('token') as String;
-                                      await model._apiSer.purchaseGem(
-                                        gem: model.bundle.gem,
-                                        token: token,
-                                      );
-                                      printSth();
-                                      model.notifyListeners();
-                                    },
-                                    onError: (error) {
-                                      print("onError: $error");
-                                    },
-                                    onCancel: (params) {
-                                      print('cancelled: $params');
-                                    },
-                                  ),
+                                  builder: (context) => HomePage(),
                                 ),
-                              )
+                              );
                             },
-                            child: const Text("Confirm Payment"),
-                          )
-                        : Container();
-                  },
-                ),
-              ],
-            ),
+                            onError: (error) {
+                              print("onError: $error");
+                              Navigator.pop(context);
+                            },
+                            onCancel: () {
+                              print('cancelled:');
+                              Navigator.pop(context);
+                            },
+                          ),
+                        ));
+                      },
+                      child: const Text('Pay with paypal'),
+                    )
+                  : Container(),
+              !scaned
+                  ? ElevatedButton(
+                      onPressed: scanQR,
+                      child: Text('Scan Code'),
+                    )
+                  : Container(),
+            ],
           ),
         ),
       ),

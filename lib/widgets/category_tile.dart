@@ -10,27 +10,26 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class CategoryTile extends StatefulWidget {
   Category category;
-  CategoryTile({Key? key, required this.category}) : super(key: key);
+  final VoidCallback onToggleLike;
+  CategoryTile({Key? key, required this.category, required this.onToggleLike})
+      : super(key: key);
   @override
   State<CategoryTile> createState() => _CategoryTileState();
 }
 
 class _CategoryTileState extends State<CategoryTile> {
-  final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
-  final ApiService _apiSer = ApiService();
-
-  Future<void> toggleLikeRemove(int categoryId) async {
-    final SharedPreferences? prefs = await _prefs;
-    final token = prefs?.get('token') as String;
-
-    // Call the asynchronous method and get the result
-    await _apiSer.addOrRemoveFavorite(token, categoryId);
-    widget.category.favorite = !widget.category.favorite;
-    setState(() {});
+  Future<void> toggleLikeRemove() async {
+    // Call the callback provided by the parent widget
+    widget.onToggleLike();
   }
 
   @override
   Widget build(BuildContext context) {
+    Future<void> toggleLikeRemove() async {
+      // Call the callback provided by the parent widget
+      widget.onToggleLike();
+    }
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.grey[300],
@@ -52,10 +51,11 @@ class _CategoryTileState extends State<CategoryTile> {
                   icon: widget.category.favorite
                       ? Icon(
                           Icons.favorite,
+                          color: Colors.red,
                         )
                       : Icon(Icons.favorite_border),
                   onPressed: () {
-                    toggleLikeRemove(widget.category.categoryId);
+                    toggleLikeRemove();
                   },
                 ),
               ],
